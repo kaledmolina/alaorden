@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('bar_code')->unique()->nullable();            
             $table->string('referencia')->nullable();
             $table->text('description')->nullable();
-            $table->money('precio_venta');
+            $table->decimal('precio_venta', 10, 2)->nullable();
             $table->integer('cantidad_vendida');
             $table->timestamps();
         });

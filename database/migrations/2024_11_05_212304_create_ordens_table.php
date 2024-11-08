@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('numero_orden')->unique();
             $table->foreignId('vendedor_id')->constrained('vendedores');
-            $table->money('total_precio');
+            $table->decimal('total_precio', 10, 2)->nullable();
             $table->timestamps();
         });
         // Migración de la tabla pivote OrdenProducto
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->string('bar_code')->unique()->nullable();            
             $table->string('referencia')->nullable();
             $table->text('description')->nullable();
-            $table->money('precio_venta');
+            $table->decimal('precio_venta', 10, 2)->nullable();
             $table->integer('cantidad_asignada');
             $table->timestamps();
         });

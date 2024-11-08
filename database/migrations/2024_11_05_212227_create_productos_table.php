@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::create('productos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('categoria_id')->constrained('categorias');
-            $table->phpEnum('status');
+            $table->enum('status', ['activo', 'inactivo', 'pendiente'])->default('activo');
             $table->string('nombre');
             $table->string('code')->unique();
             $table->string('bar_code')->unique()->nullable();            
             $table->string('referencia')->nullable();
-            $table->money('precio_compra')->nullable();
-            $table->money('precio_venta')->nullable();
+            $table->decimal('precio_compra', 10, 2)->nullable();
+            $table->decimal('precio_venta', 10, 2)->nullable();
             $table->text('descripcion');
             $table->boolean('is_visible')->default(false);
             $table->boolean('is_activo')->default(true);            
