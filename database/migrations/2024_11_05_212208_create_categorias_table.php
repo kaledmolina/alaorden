@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nombre');
             $table->text('descripcion')->nullable();
             $table->boolean('is_visible')->default(false);
+            $table->boolean('activo')->default(false);
             $table->timestamps();
         });
     }
