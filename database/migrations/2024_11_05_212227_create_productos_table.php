@@ -22,7 +22,7 @@ return new class extends Migration
             $table->decimal('precio_compra', 10, 2)->nullable();
             $table->decimal('precio_venta', 10, 2)->nullable();
             $table->text('descripcion');
-            $table->boolean('is_visible')->default(false);
+            $table->boolean('is_visible')->default(true);
             $table->boolean('is_activo')->default(true);            
             $table->timestamps();
         });

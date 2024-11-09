@@ -15,6 +15,9 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Collection;
+
 
 
 
@@ -23,7 +26,7 @@ class CategoriaResource extends Resource
 {
     protected static ?string $model = Categoria::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-s-folder';
 
     public static function form(Form $form): Form
     {
@@ -89,13 +92,61 @@ class CategoriaResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->action(function (Categoria $record) {
+                        if ($record->productos()->exists()) {
+                            Notification::make()
+                                ->danger()
+                                ->title('No se puede eliminar la categoría')
+                                ->body('Esta categoría tiene productos asociados.')
+                                ->send();
+                                
+                            return;
+                        }
+                        
+                        $record->delete();
+
+                        // Notificación de éxito al borrar
+                        Notification::make()
+                            ->success()
+                            ->title('Categoría eliminada')
+                            ->body('La categoría fue eliminada exitosamente.')
+                            ->send();
+                    })
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->action(function (Collection $records) {
+                            // Filtramos las categorías que no tienen productos asociados
+                            $categoriesWithoutProducts = $records->filter(function ($record) {
+                                return !$record->productos()->exists();
+                            });
+            
+                            // Verificamos si hay alguna categoría sin productos asociados para borrar
+                            if ($categoriesWithoutProducts->isNotEmpty()) {
+                                // Eliminamos solo las categorías sin productos asociados
+                                $categoriesWithoutProducts->each->delete();
+            
+                                Notification::make()
+                                    ->success()
+                                    ->title('Categorías eliminadas')
+                                    ->body($categoriesWithoutProducts->count() . ' categoría(s) eliminada(s) exitosamente.')
+                                    ->send();
+                            }
+            
+                            // Si existen categorías con productos asociados, mostramos una notificación de advertencia
+                            if ($categoriesWithoutProducts->count() < $records->count()) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Algunas categorías no se pueden eliminar')
+                                    ->body('Algunas categorías tienen productos asociados y no se eliminaron.')
+                                    ->send();
+                            }
+                        }),
                 ]),
             ]);
+            
     }
 
     public static function getPages(): array

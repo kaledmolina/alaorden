@@ -15,12 +15,13 @@ return new class extends Migration
             $table->id();
             $table->string('nombre');
             $table->string('apellido');
-            $table->string('telefono');
-            $table->string('cedula');
+            $table->string('telefono')->nullable();
+            $table->string('email')->nullable();
+            $table->string('cedula')->nullable();
             $table->boolean('is_activo')->default(true);
             $table->boolean('is_visible')->default(true);
             $table->text('direccion')->nullable();
-            $table->text('fecha_nacimiento')->nullable();
+            $table->date('fecha_nacimiento')->nullable();
             $table->text('sexo')->nullable();
             $table->text('descripcion')->nullable();
             $table->timestamps();
