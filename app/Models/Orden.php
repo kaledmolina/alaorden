@@ -6,14 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class Orden extends Model
 {
-    //
+    protected $fillable = [
+        'numero_orden',
+        'vendedor_id',
+        'total_precio',
+    ];
     public function vendedor()
     {
         return $this->belongsTo(Vendedor::class);
     }
+    public function OrdenProducto()
+{
+    return $this->hasMany(OrdenProducto::class);
+}
 
-    public function productos()
-    {
-        return $this->belongsToMany(Producto::class, 'orden_producto')->withPivot('cantidad_asignada');
-    }
 }

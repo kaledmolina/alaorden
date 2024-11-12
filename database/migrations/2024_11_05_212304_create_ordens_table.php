@@ -14,18 +14,20 @@ return new class extends Migration
         Schema::create('ordens', function (Blueprint $table) {
             $table->id();
             $table->string('numero_orden')->unique();
-            $table->foreignId('vendedor_id')->constrained('vendedores');
+            $table->foreignId('vendedor_id')->constrained('vendedors');
             $table->decimal('total_precio', 10, 2)->nullable();
             $table->timestamps();
         });
         // Migración de la tabla pivote OrdenProducto
         Schema::create('orden_producto', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('orden_id')->constrained('ordenes');
+            $table->foreignId('orden_id')
+                ->constrained('ordens')
+                ->onDelete('cascade');
             $table->foreignId('producto_id')->constrained('productos');
             $table->string('nombre');
-            $table->string('code')->unique();
-            $table->string('bar_code')->unique()->nullable();            
+            $table->string('code')->nullable();
+            $table->string('bar_code')->nullable();            
             $table->string('referencia')->nullable();
             $table->text('description')->nullable();
             $table->decimal('precio_venta', 10, 2)->nullable();

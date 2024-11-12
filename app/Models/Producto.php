@@ -11,4 +11,8 @@ class Producto extends Model
     {
         return $this->belongsTo(Categoria::class);
     }
+    public function ordenes()
+    {
+        return $this->belongsToMany(Orden::class, 'orden_producto');
+    }
 }
