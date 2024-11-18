@@ -132,11 +132,11 @@ class OrdenResource extends Resource
                             ->label('Referencia')
                             ->nullable(),
                             Forms\Components\Hidden::make('description'),
-                            ])
-                    ->required()
-                    ->defaultItems(0)
-                                      
-                    ->columnSpan(2),
+                                ])
+                        ->required()
+                        ->defaultItems(0)
+                        ->addActionLabel('Añadir Productos')                                      
+                        ->columnSpan(2),
 
                 // Campo para el total de precio de la orden
                 Forms\Components\TextInput::make('total_precio')
