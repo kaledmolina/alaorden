@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('ordens', function (Blueprint $table) {
             $table->id();
             $table->string('numero_orden')->unique();
-            $table->foreignId('vendedor_id')->constrained('vendedors');
+            $table->foreignId('vendedor_id')->constrained('vendedors');            
             $table->decimal('total_precio', 10, 2)->nullable();
             $table->timestamps();
         });

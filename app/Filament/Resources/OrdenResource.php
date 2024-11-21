@@ -11,6 +11,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use App\Models\Vendedor;
 use App\Models\Producto;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
 
 class OrdenResource extends Resource
 {
@@ -32,10 +35,16 @@ class OrdenResource extends Resource
             ->schema([
                 // Campo para el número de orden
                 Forms\Components\TextInput::make('numero_orden')
-                    ->label('Número de Orden')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->prefixIcon('heroicon-o-document'),
+                ->label('Número de Orden')
+                ->required()
+                ->readonly()
+                ->default(function () {
+                    do {
+                        $numero_orden = \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(10));
+                    } while (Orden::where('numero_orden', $numero_orden)->exists());
+                    return $numero_orden;
+                })
+                ->unique(table: 'ordens', column: 'numero_orden', ignoreRecord: true), 
 
                 // Select para elegir el vendedor
                 Forms\Components\Select::make('vendedor_id')
@@ -87,62 +96,69 @@ class OrdenResource extends Resource
 
                 // Repeater para gestionar productos dentro de la orden
                 Forms\Components\Repeater::make('productos')
-                    ->label('Productos')
-                    ->relationship('OrdenProducto')
-                    ->schema([
-                        // Select para elegir el producto dentro del repeater
-                        Forms\Components\Select::make('producto_id')
-                            ->label('Producto')
-                            ->options(fn () => Producto::all()->pluck('nombre', 'id'))
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->reactive()
-                            ->afterStateUpdated(function (Forms\Set $set, $state) {
-                                $producto = Producto::find($state);
-                                if ($producto) {
-                                    // Asigna los valores del producto al formulario
-                                    $set('nombre', $producto->nombre);
-                                    $set('precio_venta', $producto->precio_venta);
-                                    $set('referencia', $producto->referencia);
-                                    $set('cantidad_asignada', 1);
-                                    $set('code', $producto->code);
-                                    $set('bar_code', $producto->bar_code);
-                                    $set('description', $producto->description);
-                                }
-                            }),
+                ->label('Productos de la orden')
+                ->relationship('OrdenProducto')
+                ->schema([
+                    // Cambiar el diseño para mostrar productos horizontalmente
+                    Forms\Components\Grid::make(4)
+                        ->schema([
+                            // Producto (Select) - Ancho 2 columnas
+                            Forms\Components\Select::make('producto_id')
+                                ->label('Producto')
+                                ->options(fn () => Producto::all()->pluck('nombre', 'id'))
+                                ->searchable()
+                                ->preload()
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                    $producto = Producto::find($state);
+                                    if ($producto) {
+                                        $set('nombre', $producto->nombre);
+                                        $set('precio_venta', $producto->precio_venta);
+                                        $set('referencia', $producto->referencia);
+                                        $set('cantidad_asignada', 1);
+                                        $set('code', $producto->code);
+                                        $set('bar_code', $producto->bar_code);
+                                        $set('description', $producto->description);
+                                    }
+                                }),
 
-                        Forms\Components\Hidden::make('nombre'),
+                            Forms\Components\TextInput::make('referencia')
+                                ->label('Referencia')
+                                ->numeric()
+                                ->columnSpan(1),
 
-                        // Campo para la cantidad asignada del producto
-                        Forms\Components\TextInput::make('cantidad_asignada')
-                            ->label('Cantidad Asignada')
-                            ->numeric()
-                            ->required(),
+                            // Cantidad - Ancho 1 columna
+                            Forms\Components\TextInput::make('cantidad_asignada')
+                                ->label('Cantidad')
+                                ->numeric()
+                                ->required()
+                                ->columnSpan(1),
 
-                        // Campo para el precio de venta del producto
-                        Forms\Components\TextInput::make('precio_venta')
-                            ->label('Precio de Venta')
-                            ->numeric()
-                            ->required(),
+                            // Precio de Venta - Ancho 1 columna
+                            Forms\Components\TextInput::make('precio_venta')
+                                ->label('Precio')
+                                ->numeric()
+                                ->required()
+                                ->columnSpan(1),
+                        ]),
 
-                        Forms\Components\Hidden::make('code'),
-                        Forms\Components\Hidden::make('bar_code'),
-                        Forms\Components\TextInput::make('referencia')
-                            ->label('Referencia')
-                            ->nullable(),
-                            Forms\Components\Hidden::make('description'),
-                                ])
-                        ->required()
-                        ->defaultItems(0)
-                        ->addActionLabel('Añadir Productos')                                      
-                        ->columnSpan(2),
-
-                // Campo para el total de precio de la orden
+                    // Campos ocultos para mantener la funcionalidad
+                    Forms\Components\Hidden::make('nombre'),
+                    Forms\Components\Hidden::make('code'),
+                    Forms\Components\Hidden::make('bar_code'),
+                    //Forms\Components\Hidden::make('referencia'),
+                    Forms\Components\Hidden::make('description'),
+                ])
+                ->required()
+                ->defaultItems(0)
+                ->addActionLabel('Añadir Productos')
+                ->columnSpan(2),
                 Forms\Components\TextInput::make('total_precio')
                     ->label('Total Precio')
                     ->numeric()
-                    ->required()                    
+                    ->required()
+                    ->default(0)
                     ->columnSpan(2),
             ]);
     }
@@ -186,8 +202,11 @@ class OrdenResource extends Resource
             ])
             ->filters([])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                
+                
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
