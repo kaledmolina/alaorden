@@ -19,6 +19,7 @@ class OrdenResource extends Resource
 {
     // Especificamos el modelo asociado a este recurso
     protected static ?string $model = Orden::class;
+    protected static ?int $navigationSort = 4;
 
     // Icono para la navegación en Filament
     protected static ?string $navigationIcon = 'heroicon-m-clipboard-document-list';
@@ -184,21 +185,17 @@ class OrdenResource extends Resource
                     ->searchable()
                     ->wrap()
                     ->limit(30),
-
-                Tables\Columns\TextColumn::make('total_precio')
-                    ->label('Total Precio')
-                    ->money('COP') // Formato de moneda
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Fecha de Creación')
-                    ->dateTime('d/m/Y H:i') // Formato de fecha
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('productos_count')
-                    ->label('Cantidad de Productos')
-                    ->getStateUsing(fn ($record) => $record->OrdenProducto()->count())
+                    Tables\Columns\TextColumn::make('vendedor.telefono')
+                    ->label('celular')
                     ->sortable()
+                    ->searchable()
+                    ->wrap(),
+
+                    Tables\Columns\TextColumn::make('productos_count')
+                    ->label('Cantidad de Productos')
+                    ->getStateUsing(fn ($record) => $record->OrdenProducto()->sum('cantidad_asignada'))
+                    ->sortable()
+                
             ])
             ->filters([])
             ->actions([

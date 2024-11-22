@@ -15,4 +15,8 @@ class Producto extends Model
     {
         return $this->belongsToMany(Orden::class, 'orden_producto');
     }
+    public function stockProducto()
+    {
+        return $this->hasOne(StockProducto::class, 'producto_id');
+    }
 }

@@ -24,6 +24,7 @@ class ProductoResource extends Resource
     protected static ?string $model = Producto::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-gift';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -81,9 +82,12 @@ class ProductoResource extends Resource
                 Forms\Components\TextInput::make('nombre')
                     ->required(),
                 Forms\Components\TextInput::make('code')
+                    ->unique(ignoreRecord: true)
                     ->required(),
-                Forms\Components\TextInput::make('bar_code'),
-                Forms\Components\TextInput::make('referencia'),
+                Forms\Components\TextInput::make('bar_code')
+                    ->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('referencia')
+                    ->unique(ignoreRecord: true),
                 Forms\Components\TextInput::make('precio_compra')
                     ->numeric(),
                 Forms\Components\TextInput::make('precio_venta')

@@ -19,6 +19,7 @@ class VendedorResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-c-user-group';
     protected static ?string $pluralModelLabel = 'Vendedores';
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {

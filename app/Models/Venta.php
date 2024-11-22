@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Venta extends Model
 {
@@ -24,4 +25,5 @@ class Venta extends Model
     {
         return $this->hasMany(VentaProducto::class);
     }
+    
 }
