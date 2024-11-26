@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('categoria_id')->constrained('categorias');
             $table->enum('status', ['activo', 'inactivo', 'pendiente'])->default('activo');
-            $table->string('nombre');
-            $table->string('code')->unique();
+            $table->string('nombre')->unique();
+            $table->string('code')->unique()->nullable();
             $table->string('bar_code')->unique()->nullable();            
-            $table->string('referencia')->nullable();
+            $table->string('referencia')->unique()->nullable(); 
             $table->decimal('precio_compra', 10, 2)->nullable();
             $table->decimal('precio_venta', 10, 2)->nullable();
             $table->text('descripcion');

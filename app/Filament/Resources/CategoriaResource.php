@@ -28,37 +28,39 @@ class CategoriaResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-s-folder';
     protected static ?int $navigationSort = 0;
-
     public static function form(Form $form): Form
     {
         return $form
-        ->schema([
-            Forms\Components\TextInput::make('nombre')
-                ->label('Categoría General')
-                ->required()
-                ->placeholder('Ingrese el nombre de la categoría')
-                ->helperText('Este campo es obligatorio.')
-                ->columnSpan(2), // Se ajusta el tamaño en el formulario, útil para hacer columnas más grandes
-            ToggleButtons::make('is_visible')
-                ->label('visible?')
-                ->default(true)
-                ->boolean()
-                ->grouped()
-                ->helperText('Indique si esta categoría es visible para los usuarios'), 
-            ToggleButtons::make('is_active')
-                ->label('activo?')
-                ->default(true)
-                ->boolean() // Valor predeterminado en 'true'
-                ->grouped()
-                ->helperText('Indique si esta categoría está activa en el sistema'),
-
-            MarkdownEditor::make('descripcion')
-                ->label('Descripción')
-                ->placeholder('Ingrese una descripción detallada...')
-                ->helperText('Esta descripción será visible en la interfaz del usuario.')
-                ->columnSpan(2), // Similar al 'TextInput', se usa para más espacio
-        ]);
+            ->schema([
+                Forms\Components\Grid::make(2) // Configura un grid con 2 columnas
+                    ->schema([
+                        Forms\Components\TextInput::make('nombre')
+                            ->label('Categoría General')
+                            ->required()
+                            ->placeholder('Ingrese el nombre de la categoría')
+                            ->helperText('Este campo es obligatorio.')
+                            ->columnSpan('full'), // Ocupa una fila completa en pantallas pequeñas
+                        ToggleButtons::make('is_visible')
+                            ->label('¿Visible?')
+                            ->default(true)
+                            ->boolean()
+                            ->grouped()
+                            ->helperText('Indique si esta categoría es visible para los usuarios'),
+                        ToggleButtons::make('is_active')
+                            ->label('¿Activo?')
+                            ->default(true)
+                            ->boolean()
+                            ->grouped()
+                            ->helperText('Indique si esta categoría está activa en el sistema'),
+                        Forms\Components\MarkdownEditor::make('descripcion')
+                            ->label('Descripción')
+                            ->placeholder('Ingrese una descripción detallada...')
+                            ->helperText('Esta descripción será visible en la interfaz del usuario.')
+                            ->columnSpan('full'), // Ocupa toda la fila si hay poco espacio
+                    ])
+            ]);
     }
+    
 
     public static function table(Table $table): Table
     {

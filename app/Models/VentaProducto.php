@@ -21,6 +21,8 @@ class VentaProducto extends Model
         'description',
         'precio_venta',
         'comision',
+        'subtotal',        
+        'profitunitario',
         'cantidad_vendida',
     ];
     
@@ -30,24 +32,37 @@ class VentaProducto extends Model
 
         static::created(function ($ventaProducto) {
             DB::transaction(function () use ($ventaProducto) {
-                // Buscar el registro de stock para el producto
+                // Actualización del stock del producto
                 $stockProducto = StockProducto::where('producto_id', $ventaProducto->producto_id)->first();
 
                 if ($stockProducto) {
-                    // Actualizar la cantidad de stock actual y cantidad vendida
-                    $stockProducto->cantidad_actual -= $ventaProducto->cantidad_vendida; // Resta la cantidad vendida del stock
-                    $stockProducto->cantidad_vendida += $ventaProducto->cantidad_vendida; // Aumenta la cantidad vendida
-
-                    // Actualizar la fecha del último ajuste
+                    $stockProducto->cantidad_actual -= $ventaProducto->cantidad_vendida; // Resta la cantidad vendida
+                    $stockProducto->cantidad_vendida += $ventaProducto->cantidad_vendida; // Suma la cantidad vendida
                     $stockProducto->fecha_ultimo_ajuste = now();
                     $stockProducto->save();
                 } else {
-                    // Si no se encuentra el stock, enviar una notificación
                     Notification::make()->warning('No se encontró el stock del producto.')->send();
+                }
+
+                // Actualización o eliminación del registro en orden_producto
+                $ordenProducto = OrdenProducto::where('producto_id', $ventaProducto->producto_id)
+                    ->where('orden_id', $ventaProducto->venta->orden_id)
+                    ->first();
+
+                if ($ordenProducto) {
+                    if ($ordenProducto->cantidad_asignada > $ventaProducto->cantidad_vendida) {
+                        // Resta la cantidad vendida de la cantidad asignada
+                        $ordenProducto->cantidad_asignada -= $ventaProducto->cantidad_vendida;
+                        $ordenProducto->save();
+                    } else {
+                        // Eliminar el registro si se vendió todo
+                        $ordenProducto->delete();
+                    }
                 }
             });
         });
     }
+
 
     public function venta()
     {

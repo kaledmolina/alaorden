@@ -32,6 +32,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->decimal('precio_venta', 10, 2)->nullable();
             $table->integer('comision')->nullable();
+            $table->decimal('subtotal', 10, 2)->nullable();
+            $table->decimal('profitunitario', 10, 2)->nullable();    
             $table->integer('cantidad_vendida');
             $table->timestamps();
         });

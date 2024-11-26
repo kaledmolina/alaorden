@@ -36,29 +36,32 @@ class ProductoResource extends Resource
                     ->searchable()
                     ->required()
                     ->createOptionForm([
-                        Forms\Components\TextInput::make('nombre')
-                            ->label('Categoría General')
-                            ->required()
-                            ->placeholder('Ingrese el nombre de la categoría')
-                            ->helperText('Este campo es obligatorio.')
-                            ->columnSpan(2),
-                        ToggleButtons::make('is_visible')
-                            ->label('¿Visible?')
-                            ->default(true)
-                            ->boolean()
-                            ->grouped()
-                            ->helperText('Indique si esta categoría es visible para los usuarios'), 
-                        ToggleButtons::make('is_active')
-                            ->label('¿Activo?')
-                            ->default(true)
-                            ->boolean()
-                            ->grouped()
-                            ->helperText('Indique si esta categoría está activa en el sistema'),
-                        MarkdownEditor::make('descripcion')
-                            ->label('Descripción')
-                            ->placeholder('Ingrese una descripción detallada...')
-                            ->helperText('Esta descripción será visible en la interfaz del usuario.')
-                            ->columnSpan(2),
+                        Forms\Components\Grid::make(2) // Configura un grid con 2 columnas
+                            ->schema([
+                                Forms\Components\TextInput::make('nombre')
+                                    ->label('Categoría General')
+                                    ->required()
+                                    ->placeholder('Ingrese el nombre de la categoría')
+                                    ->helperText('Este campo es obligatorio.')
+                                    ->columnSpan('full'), // Ocupa una fila completa en pantallas pequeñas
+                                ToggleButtons::make('is_visible')
+                                    ->label('¿Visible?')
+                                    ->default(true)
+                                    ->boolean()
+                                    ->grouped()
+                                    ->helperText('Indique si esta categoría es visible para los usuarios'),
+                                ToggleButtons::make('is_active')
+                                    ->label('¿Activo?')
+                                    ->default(true)
+                                    ->boolean()
+                                    ->grouped()
+                                    ->helperText('Indique si esta categoría está activa en el sistema'),
+                                Forms\Components\MarkdownEditor::make('descripcion')
+                                    ->label('Descripción')
+                                    ->placeholder('Ingrese una descripción detallada...')
+                                    ->helperText('Esta descripción será visible en la interfaz del usuario.')
+                                    ->columnSpan('full'), // Ocupa toda la fila si hay poco espacio
+                            ])
                     ])
                     ->createOptionUsing(function (array $data) {
                         $categoria = Categoria::create([
@@ -82,16 +85,18 @@ class ProductoResource extends Resource
                 Forms\Components\TextInput::make('nombre')
                     ->required(),
                 Forms\Components\TextInput::make('code')
-                    ->unique(ignoreRecord: true)
-                    ->required(),
+                    ->unique(ignoreRecord: true),
                 Forms\Components\TextInput::make('bar_code')
                     ->unique(ignoreRecord: true),
-                Forms\Components\TextInput::make('referencia')
+                Forms\Components\TextInput::make('referencia')                
+                    ->required()
                     ->unique(ignoreRecord: true),
                 Forms\Components\TextInput::make('precio_compra')
-                    ->numeric(),
+                    ->numeric()
+                    ->required(),
                 Forms\Components\TextInput::make('precio_venta')
-                    ->numeric(),
+                    ->numeric()
+                    ->required(),
                 MarkdownEditor::make('descripcion')
                     ->label('Descripción')
                     ->placeholder('Ingrese una descripción detallada...')

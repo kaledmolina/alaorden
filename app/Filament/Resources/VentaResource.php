@@ -21,7 +21,8 @@ use Illuminate\Support\Facades\DB;
 
 
 class VentaResource extends Resource
-{
+{  
+
     protected static ?string $model = Venta::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
@@ -169,12 +170,17 @@ class VentaResource extends Resource
                             'comision' => 0, // Comisión predeterminada
                         ];
             
-                        $livewire->data['Productos'] = $productos;
+                        $livewire->data['Productos'] = $productos; 
+                        self::recalculateTotales(
+                            fn($key) => $livewire->data[$key] ?? null,
+                            fn($key, $value) => $livewire->data[$key] = $value
+                        );
                         $component->state(null); // Restablecer el estado del select
+                        
                     }
                 }),
 
-            Forms\Components\Repeater::make('Productos')
+                Forms\Components\Repeater::make('Productos')
                 ->relationship('VentaProducto')
                 ->schema([
                     Forms\Components\Grid::make(4)
@@ -200,40 +206,67 @@ class VentaResource extends Resource
                                     }
                                 }),
 
-                            Forms\Components\TextInput::make('referencia')
-                                ->label('Referencia')
-                                ->disabled()
-                                ->numeric()
-                                ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('cantidad_vendida')
                                 ->label('Cantidad')
                                 ->numeric()
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function (Forms\Set $set, $state, callable $get) {
                                     $productoId = $get('producto_id');
+                                    $precioVenta = $get('precio_venta') ?? 0;
+                                    $comision = $get('comision') ?? 0;
+                            
+                                    // Buscar la cantidad asignada originalmente
+                                    $ordenProducto = OrdenProducto::where('producto_id', $productoId)
+                                        ->where('orden_id', $get('../../orden_id'))
+                                        ->first();
+                            
                                     $stockProducto = StockProducto::where('producto_id', $productoId)->first();
                             
-                                    // Validar stock
-                                    if ($stockProducto && $state > $stockProducto->cantidad_actual) {
+                                    $cantidadFinal = $state;
+                            
+                                    // Si el producto está en la orden original
+                                    if ($ordenProducto) {
+                                        $cantidadAsignada = $ordenProducto->cantidad_asignada;
+                            
+                                        if ($state > $cantidadAsignada) {
+                                            Notification::make()
+                                                ->title('Advertencia')
+                                                ->body("La cantidad ingresada ({$state}) supera la cantidad asignada originalmente ({$cantidadAsignada}).")
+                                                ->warning()
+                                                ->send();
+                            
+                                            $cantidadFinal = $cantidadAsignada;
+                                            $set('cantidad_vendida', $cantidadFinal); // Actualización síncrona
+                                        }
+                                    } 
+                                    // Validar solo por stock si no está en la orden original
+                                    else if ($stockProducto && $state > $stockProducto->cantidad_actual) {
                                         Notification::make()
                                             ->title('Advertencia')
-                                            ->body("La cantidad ingresada excede el stock disponible para este producto.")
+                                            ->body("La cantidad ingresada excede el stock disponible ({$stockProducto->cantidad_actual}).")
                                             ->warning()
                                             ->send();
-                                        $set('cantidad_vendida', $stockProducto->cantidad_actual);
-                                    } else {
-                                        // Calcular el total si la cantidad es válida
-                                        $productos = $get('../../Productos');
-                                        $total = collect($productos)->sum(function ($producto) {
-                                            return ($producto['precio_venta'] ?? 0) * ($producto['cantidad_vendida'] ?? 0);
-                                        });
-                                        $set('../../total_precio', $total);
-                                    }
-                                }),
                             
-
+                                        $cantidadFinal = $stockProducto->cantidad_actual;
+                                        $set('cantidad_vendida', $cantidadFinal); // Actualización síncrona
+                                    }
+                            
+                                    // Calcular subtotal con la cantidad corregida
+                                    $subtotal = $cantidadFinal * $precioVenta;
+                                    $set('subtotal', $subtotal);
+                            
+                                    // Calcular ganancia unitaria
+                                    $gananciaUnitaria = $subtotal * ($comision / 100);
+                                    $set('profitunitario', round($gananciaUnitaria, 2));
+                            
+                                    // Recalcular totales después de actualizar la cantidad corregida
+                                    self::recalculateTotales(
+                                        function($key) use ($get) { return $get($key); }, 
+                                        $set
+                                    );
+                                }),
                             Forms\Components\TextInput::make('precio_venta')
                                 ->label('Precio')
                                 ->numeric()
@@ -241,12 +274,26 @@ class VentaResource extends Resource
                                 ->columnSpan(1)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function (callable $set, callable $get) {
-                                    $productos = $get('../../Productos');
-                                    $total = collect($productos)->sum(function ($producto) {
-                                        return ($producto['precio_venta'] ?? 0) * ($producto['cantidad_vendida'] ?? 0);
-                                    });
-                                    $set('../../total_precio', $total);
+                                    $cantidad = $get('cantidad_vendida') ?? 0;
+                                    $precioVenta = $get('precio_venta') ?? 0;
+                                    $comision = $get('comision') ?? 0;
+                            
+                                    // Calcular subtotal
+                                    $subtotal = $cantidad * $precioVenta;
+                                    $set('subtotal', $subtotal);
+                            
+                                    // Calcular ganancia unitaria
+                                    $gananciaUnitaria = $subtotal * ($comision / 100);
+                                    $set('profitunitario', $gananciaUnitaria);
+                            
+                                    // Recalcular totales del formulario
+                                    self::recalculateTotales($get, $set);
                                 }),
+
+                            Forms\Components\TextInput::make('subtotal')
+                                ->label('Subtotal')
+                                ->disabled()
+                                ->columnSpan(1),
 
                             Forms\Components\TextInput::make('comision')
                                 ->label('Comisión (%)')
@@ -255,21 +302,55 @@ class VentaResource extends Resource
                                 ->columnSpan(1)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function (callable $set, callable $get) {
-                                    $productos = $get('../../Productos');
-                                    $totalComision = collect($productos)->sum(function ($producto) {
-                                        $subtotal = ($producto['precio_venta'] ?? 0) * ($producto['cantidad_vendida'] ?? 0);
-                                        return $subtotal * (($producto['comision'] ?? 0) / 100);
-                                    });
-                                    $set('../../profit_vendedor', $totalComision);
+                                    $cantidad = $get('cantidad_vendida') ?? 0;
+                                    $precioVenta = $get('precio_venta') ?? 0;
+                                    $comision = $get('comision') ?? 0;
+                                    
+                                    // Calcular subtotal
+                                    $subtotal = $cantidad * $precioVenta;
+                                    
+                                    // Calcular ganancia unitaria
+                                    $gananciaUnitaria = $subtotal * ($comision / 100);
+                                    $set('profitunitario', round($gananciaUnitaria, 2));
+                            
+                                    // Recalcular totales del formulario
+                                    self::recalculateTotales($get, $set);
+                                }),
+
+                            Forms\Components\TextInput::make('profitunitario')
+                                ->label('Ganancia Unitaria')
+                                ->numeric()
+                                ->default(0)
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (callable $set, callable $get) {
+                                    $cantidad = $get('cantidad_vendida') ?? 0;
+                                    $precioVenta = $get('precio_venta') ?? 0;
+                                    
+                                    // Calcular subtotal
+                                    $subtotal = $cantidad * $precioVenta;
+                                    
+                                    // Calcular porcentaje de comisión
+                                    if ($subtotal > 0) {
+                                        $comision = ($get('profitunitario') / $subtotal) * 100;
+                                        $set('comision', round($comision, 2));
+                                    }
+                            
+                                    // Recalcular totales del formulario
+                                    self::recalculateTotales($get, $set);
                                 }),
                         ]),
-                    Forms\Components\Hidden::make('producto_id'),
-                    Forms\Components\Hidden::make('nombre'),       
-                    Forms\Components\Hidden::make('referencia'),
-                    Forms\Components\Hidden::make('code'),
-                    Forms\Components\Hidden::make('bar_code'),
-                    Forms\Components\Hidden::make('description'),
+                        Forms\Components\Hidden::make('producto_id'),
+                        Forms\Components\Hidden::make('nombre'),
+                        Forms\Components\Hidden::make('code'),
+                        Forms\Components\Hidden::make('bar_code'),
+                        Forms\Components\Hidden::make('referencia'),
+                        Forms\Components\Hidden::make('description'),
+                        Forms\Components\Hidden::make('subtotal'),
+                        Forms\Components\Hidden::make('profitunitario'),
                 ])
+                ->afterStateUpdated(function (callable $set, callable $get) {
+                    self::recalculateTotales($get, $set);
+                })
                 ->defaultItems(0)
                 ->addable(false)
                 ->columnSpan(2),
@@ -277,18 +358,65 @@ class VentaResource extends Resource
             Forms\Components\TextInput::make('total_precio')
                 ->label('Total Precio')
                 ->numeric()
+                ->disabled()
                 ->required()
-                ->live(onBlur: true)
                 ->columnSpan(2),
 
             Forms\Components\TextInput::make('profit_vendedor')
                 ->label('Ganancia del Vendedor')
                 ->numeric()
+                ->disabled()
                 ->required()
-                ->live(onBlur: true)
                 ->columnSpan(2),
+            Forms\Components\Hidden::make('total_precio'),
+            Forms\Components\Hidden::make('profit_vendedor'),     
         ]);
+        
     }
+    protected static function recalculateTotales(callable $get, callable $set)
+{
+    // Obtén los productos del formulario
+    $productos = $get('Productos') ?? [];
+
+    // Recalcula el total del precio y la ganancia total del vendedor
+    $totalPrecio = 0;
+    $gananciaVendedor = 0;
+
+    foreach ($productos as $index => $producto) {
+        $productoId = $producto['producto_id'];
+        $cantidad = $producto['cantidad_vendida'] ?? 0;
+        $precioVenta = $producto['precio_venta'] ?? 0;
+        $comision = $producto['comision'] ?? 0;
+
+        // Buscar la cantidad asignada originalmente
+        $ordenProducto = OrdenProducto::where('producto_id', $productoId)
+            ->where('orden_id', $get('orden_id'))
+            ->first();
+
+        // Ajustar cantidad si supera la cantidad asignada
+        if ($ordenProducto && $cantidad > $ordenProducto->cantidad_asignada) {
+            $cantidad = $ordenProducto->cantidad_asignada;
+            
+            // Actualizar la cantidad en el array de productos
+            $productos[$index]['cantidad_vendida'] = $cantidad;
+        }
+
+        $subtotal = $cantidad * $precioVenta;
+        $ganancia = $subtotal * ($comision / 100);
+
+        $totalPrecio += $subtotal;
+        $gananciaVendedor += $ganancia;
+    }
+
+    // Actualiza los campos totales
+    $set('total_precio', round($totalPrecio, 2));
+    $set('profit_vendedor', round($gananciaVendedor, 2));
+    
+    // Opcional: Actualizar el array de productos con las cantidades corregidas
+    $set('Productos', $productos);
+}
+
+
     protected static function getProductoOptions(): array
     {
         return Producto::query()

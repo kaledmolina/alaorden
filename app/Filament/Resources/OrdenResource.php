@@ -14,6 +14,10 @@ use App\Models\Producto;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
+use App\Models\StockProducto;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
+
 
 class OrdenResource extends Resource
 {
@@ -59,23 +63,43 @@ class OrdenResource extends Resource
                 // Select para elegir un producto fuera del Repeater
                 Forms\Components\Select::make('producto_seleccionado')
                     ->label('Seleccionar Producto')
-                    ->columnSpan(2)
-                    ->dehydrated(false)
-                    ->placeholder('Ingresa nombre o referencia del producto')
                     ->searchable()
-                    ->preload()
-                    ->options(fn ($get) => self::getProductoOptions($get('producto_seleccionado')))
+                    ->placeholder('Busca un producto...')
+                    ->options(fn () => self::getProductoOptions())
                     ->reactive()
+                    ->columnSpan(2)
                     ->afterStateUpdated(function ($state, Forms\Components\Select $component) {
                         if (!$state) return;
 
-                        // Obtiene el producto seleccionado y actualiza la lista
                         $producto = Producto::find($state);
                         if ($producto) {
                             $livewire = $component->getLivewire();
                             $productos = $livewire->data['productos'] ?? [];
 
-                            // Agrega el producto a la lista de productos
+                            // Evita duplicados
+                            if (collect($productos)->pluck('producto_id')->contains($producto->id)) {
+                                Notification::make()
+                                    ->title('Producto Duplicado')
+                                    ->body("El producto '{$producto->nombre}' ya está en la lista.")
+                                    ->warning()
+                                    ->send();
+                                $component->state(null);
+                                return;
+                            }
+
+                            // Verifica el stock
+                            $stockDisponible = StockProducto::where('producto_id', $producto->id)->value('cantidad_actual') ?? 0;
+                            if ($stockDisponible <= 0) {
+                                Notification::make()
+                                    ->title('Stock Insuficiente')
+                                    ->body("El producto '{$producto->nombre}' no tiene stock disponible.")
+                                    ->warning()
+                                    ->send();
+                                $component->state(null);
+                                return;
+                            }
+
+                            // Agrega el producto
                             $productos[] = [
                                 'producto_id' => $producto->id,
                                 'nombre' => $producto->nombre,
@@ -84,82 +108,100 @@ class OrdenResource extends Resource
                                 'referencia' => $producto->referencia,
                                 'description' => $producto->description,
                                 'precio_venta' => $producto->precio_venta,
-                                'cantidad_asignada' => 1,
+                                'cantidad_asignada' => 1, // Establecer cantidad inicial
+                                'comision' => 0, // Comisión predeterminada
                             ];
 
-                            // Actualiza los productos en el estado de Livewire
                             $livewire->data['productos'] = $productos;
-
-                            // Limpia la selección después de agregar
-                            $component->state(null);
+                            $component->state(null); // Resetea el select
                         }
                     }),
 
-                // Repeater para gestionar productos dentro de la orden
-                Forms\Components\Repeater::make('productos')
-                ->label('Productos de la orden')
-                ->relationship('OrdenProducto')
-                ->schema([
-                    // Cambiar el diseño para mostrar productos horizontalmente
-                    Forms\Components\Grid::make(4)
-                        ->schema([
-                            // Producto (Select) - Ancho 2 columnas
-                            Forms\Components\Select::make('producto_id')
-                                ->label('Producto')
-                                ->options(fn () => Producto::all()->pluck('nombre', 'id'))
-                                ->searchable()
-                                ->preload()
-                                ->required()
-                                ->reactive()
-                                ->afterStateUpdated(function (Forms\Set $set, $state) {
-                                    $producto = Producto::find($state);
-                                    if ($producto) {
-                                        $set('nombre', $producto->nombre);
-                                        $set('precio_venta', $producto->precio_venta);
-                                        $set('referencia', $producto->referencia);
-                                        $set('cantidad_asignada', 1);
-                                        $set('code', $producto->code);
-                                        $set('bar_code', $producto->bar_code);
-                                        $set('description', $producto->description);
-                                    }
-                                }),
 
-                            Forms\Components\TextInput::make('referencia')
-                                ->label('Referencia')
-                                ->numeric()
-                                ->columnSpan(1),
-
-                            // Cantidad - Ancho 1 columna
-                            Forms\Components\TextInput::make('cantidad_asignada')
-                                ->label('Cantidad')
-                                ->numeric()
-                                ->required()
-                                ->columnSpan(1),
-
-                            // Precio de Venta - Ancho 1 columna
-                            Forms\Components\TextInput::make('precio_venta')
-                                ->label('Precio')
-                                ->numeric()
-                                ->required()
-                                ->columnSpan(1),
-                        ]),
-
-                    // Campos ocultos para mantener la funcionalidad
-                    Forms\Components\Hidden::make('nombre'),
-                    Forms\Components\Hidden::make('code'),
-                    Forms\Components\Hidden::make('bar_code'),
-                    //Forms\Components\Hidden::make('referencia'),
-                    Forms\Components\Hidden::make('description'),
-                ])
-                ->required()
-                ->defaultItems(0)
-                ->addActionLabel('Añadir Productos')
-                ->columnSpan(2),
-                Forms\Components\TextInput::make('total_precio')
-                    ->label('Total Precio')
-                    ->numeric()
-                    ->required()
-                    ->default(0)
+                    Forms\Components\Repeater::make('productos')
+                    ->label('Productos de la orden')
+                    ->relationship('OrdenProducto')
+                    ->schema([
+                        Forms\Components\Grid::make(4)
+                            ->schema([
+                                Forms\Components\Select::make('producto_id')
+                                    ->label('Producto')
+                                    ->options(fn () => Producto::all()->pluck('nombre', 'id'))
+                                    ->searchable()
+                                    ->disabled()
+                                    ->preload()
+                                    ->required()
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                        $producto = Producto::find($state);
+                                        if ($producto) {
+                                            $set('nombre', $producto->nombre);
+                                            $set('precio_venta', $producto->precio_venta);
+                                            $set('referencia', $producto->referencia);
+                                            $set('cantidad_asignada', 0);
+                                            $set('code', $producto->code);
+                                            $set('bar_code', $producto->bar_code);
+                                            $set('description', $producto->description);
+                                        }
+                                    }),
+                
+                                Forms\Components\TextInput::make('referencia')
+                                    ->label('Referencia')
+                                    ->disabled()
+                                    ->numeric()
+                                    ->columnSpan(1),
+                
+                                Forms\Components\TextInput::make('cantidad_asignada')
+                                    ->label('Cantidad')
+                                    ->numeric()
+                                    ->required()
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        $productoId = $get('producto_id');
+                                        $stockProducto = StockProducto::where('producto_id', $productoId)->first();
+                                        
+                                        // Validar stock
+                                        if ($stockProducto && $state > $stockProducto->cantidad_actual) {
+                                            Notification::make()
+                                                ->title('Advertencia')
+                                                ->body("La cantidad ingresada excede el stock disponible para este producto.")
+                                                ->warning()
+                                                ->send();
+                                            $set('cantidad_asignada', $stockProducto->cantidad_actual);
+                                        } else {
+                                            // Calcular el total si la cantidad es válida
+                                            $productos = $get('../../productos');
+                                            $total = collect($productos)->sum(function ($producto) {
+                                                return ($producto['precio_venta'] ?? 0) * ($producto['cantidad_asignada'] ?? 0);
+                                            });
+                                            $set('../../total_precio', $total);
+                                        }
+                                    }),
+                
+                                Forms\Components\TextInput::make('precio_venta')
+                                    ->label('Precio')
+                                    ->numeric()
+                                    ->required()
+                                    ->columnSpan(1)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (callable $set, callable $get) {
+                                        $productos = $get('../../productos');
+                                        $total = collect($productos)->sum(function ($producto) {
+                                            return ($producto['precio_venta'] ?? 0) * ($producto['cantidad_asignada'] ?? 0);
+                                        });
+                                        $set('../../total_precio', $total);
+                                    }),
+                            ]),
+                
+                        Forms\Components\Hidden::make('producto_id'),
+                        Forms\Components\Hidden::make('nombre'),
+                        Forms\Components\Hidden::make('code'),
+                        Forms\Components\Hidden::make('bar_code'),
+                        Forms\Components\Hidden::make('referencia'),
+                        Forms\Components\Hidden::make('description'),
+                    ])
+                    ->defaultItems(0)
+                    ->addable(false)
                     ->columnSpan(2),
             ]);
     }
@@ -215,14 +257,10 @@ class OrdenResource extends Resource
     /**
      * Método para obtener las opciones de productos según búsqueda
      */
-    protected static function getProductoOptions(?string $search = null): array
+    protected static function getProductoOptions(): array
     {
         return Producto::query()
             ->whereNotNull('nombre')
-            ->when($search, function ($query, $search) {
-                $query->where('nombre', 'like', "%{$search}%")
-                    ->orWhere('referencia', 'like', "%{$search}%");
-            })
             ->get()
             ->mapWithKeys(fn ($producto) => [
                 $producto->id => "{$producto->nombre} - Ref: {$producto->referencia}",
