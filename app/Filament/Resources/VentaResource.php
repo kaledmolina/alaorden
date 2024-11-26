@@ -34,7 +34,9 @@ class VentaResource extends Resource
         ->schema([
             Forms\Components\Select::make('vendedor_id')
                 ->label('Vendedor')
-                ->options(\App\Models\Vendedor::pluck('nombre', 'id'))
+                ->options(\App\Models\Vendedor::query()
+                    ->selectRaw("id, CONCAT(nombre, ' ', apellido) AS full_name")
+                    ->pluck('full_name', 'id'))
                 ->searchable()
                 ->live(onBlur: true)
                 ->required()
@@ -43,6 +45,7 @@ class VentaResource extends Resource
                     $set('producto_seleccionado', null);
                     $set('Productos', []);
                 }),
+
 
                 Forms\Components\Select::make('orden_id')
                 ->label('Orden')
@@ -439,6 +442,8 @@ class VentaResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -460,6 +465,7 @@ class VentaResource extends Resource
             'index' => Pages\ListVentas::route('/'),
             'create' => Pages\CreateVenta::route('/create'),
             'edit' => Pages\EditVenta::route('/{record}/edit'),
+            'view' => Pages\ViewVenta::route('/{record}'),
         ];
     }    
 }
