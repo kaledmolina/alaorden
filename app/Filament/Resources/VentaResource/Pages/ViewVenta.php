@@ -20,7 +20,6 @@ class ViewVenta extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
         ];
     }
 
@@ -33,9 +32,10 @@ class ViewVenta extends ViewRecord
                     Section::make('Información de la Venta')
                         ->columns(3)
                         ->schema([
-                            TextEntry::make('vendedor.nombre')
+                            TextEntry::make('vendedor')
                                 ->label('Vendedor')
-                                ->icon('heroicon-s-user'),
+                                ->icon('heroicon-s-user')
+                                ->formatStateUsing(fn ($record) => "{$record->vendedor->nombre} {$record->vendedor->apellido}"),
 
                             TextEntry::make('orden.numero_orden')
                                 ->label('Número de Orden')
@@ -87,6 +87,9 @@ class ViewVenta extends ViewRecord
                                     TextEntry::make('comision')
                                         ->label('Comisión')
                                         ->formatStateUsing(fn($state) => "{$state}%"),
+                                    TextEntry::make('profitunitario')
+                                        ->label('Ganacia unit.')
+                                        ->money('COP'),
                                 ]),
                         ]),
                 ]),

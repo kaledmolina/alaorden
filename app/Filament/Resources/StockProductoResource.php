@@ -102,6 +102,9 @@ class StockProductoResource extends Resource
             Tables\Columns\TextColumn::make('cantidad_vendida')
                 ->label('Cantidad Vendida')
                 ->sortable(),
+            Tables\Columns\TextColumn::make('cantidad_advertencia')
+                ->label('Advertencia')
+                ->sortable(),    
 
             Tables\Columns\TextColumn::make('fecha_ultimo_ajuste')
                 ->label('Fecha Último Ajuste')
@@ -120,6 +123,19 @@ class StockProductoResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+    public static function getNavigationBadge(): ?string
+    {
+        // Contar los productos donde la cantidad actual es menor o igual al valor de advertencia
+        return static::getModel()::whereColumn('cantidad_actual', '<=', 'cantidad_advertencia')->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        // Cambiar el color del badge si hay productos que cumplen la condición
+        return static::getModel()::whereColumn('cantidad_actual', '<=', 'cantidad_advertencia')->count() > 0 
+            ? 'danger' // Cambiado a 'danger' para el color rojo
+            : 'primary';
     }
 
     public static function getPages(): array
