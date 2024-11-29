@@ -83,14 +83,33 @@ class ProductoResource extends Resource
                     ->default('activo')
                     ->required(),
                 Forms\Components\TextInput::make('nombre')
+                    ->unique(ignoreRecord: true)
                     ->required(),
                 Forms\Components\TextInput::make('code')
                     ->unique(ignoreRecord: true),
                 Forms\Components\TextInput::make('bar_code')
                     ->unique(ignoreRecord: true),
-                Forms\Components\TextInput::make('referencia')                
+                    Forms\Components\TextInput::make('referencia')
+                    ->label('Referencia')
+                    ->default(function () {
+                        $lastReference = \App\Models\Producto::latest('id')->value('referencia');
+                
+                        if ($lastReference) {
+                            // Usar una expresión regular para separar el prefijo y la parte numérica
+                            preg_match('/^(.*?)(\d*)$/', $lastReference, $matches);
+                            $prefix = $matches[1] ?? ''; // Parte alfabética
+                            $number = isset($matches[2]) && $matches[2] !== '' ? (int) $matches[2] : 0; // Parte numérica
+                
+                            // Incrementar el número y devolver la nueva referencia
+                            return $prefix . ($number + 1);
+                        }
+                
+                        // Si no hay referencias previas, asignar un valor inicial
+                        return 'FA1';
+                    })
                     ->required()
                     ->unique(ignoreRecord: true),
+                
                 Forms\Components\TextInput::make('precio_compra')
                     ->numeric()
                     ->required(),
