@@ -116,6 +116,9 @@ class ProductoResource extends Resource
                 Forms\Components\TextInput::make('precio_venta')
                     ->numeric()
                     ->required(),
+                Forms\Components\TextInput::make('comision')
+                    ->numeric()
+                    ->required(),    
                 MarkdownEditor::make('descripcion')
                     ->label('Descripción')
                     ->placeholder('Ingrese una descripción detallada...')

@@ -46,6 +46,7 @@ class ViewVenta extends ViewRecord
                                 ->dateTime('d/m/Y H:i')
                                 ->icon('heroicon-s-calendar'),
                         ]),
+                     
 
                     Section::make('Comparación de Productos')
                         ->schema([
@@ -88,10 +89,32 @@ class ViewVenta extends ViewRecord
                                         ->label('Comisión')
                                         ->formatStateUsing(fn($state) => "{$state}%"),
                                     TextEntry::make('profitunitario')
-                                        ->label('Ganacia unit.')
-                                        ->money('COP'),
+                                        ->label('Ganancia Total de la venta')
+                                        ->formatStateUsing(function ($state, $record) {                                            
+                                            $cantidadVendida = $record->cantidad_vendida ?? 0;
+                                            $gananciaUnitaria = $record->profitunitario ?? 0;
+
+                                            $gananciaTotal = $cantidadVendida * $gananciaUnitaria;
+
+                                            return number_format($gananciaTotal, 2, '.', ',');
+                                        }),  
                                 ]),
                         ]),
+                    Section::make('Pago Efectivo')
+                        ->columns(3)
+                        ->schema([
+                            TextEntry::make('paid_amount')
+                                ->label('Valor Pagado')
+                                ->formatStateUsing(fn ($record) => number_format($record->paid_amount ?? 0, 2, '.', ',')),
+    
+                            TextEntry::make('change_value')
+                                ->label('Valor de Cambio')
+                                ->formatStateUsing(fn ($record) => number_format($record->change_value ?? 0, 2, '.', ',')),
+    
+                            TextEntry::make('pending_value')
+                                ->label('Valor Pendiente')
+                                ->formatStateUsing(fn ($record) => number_format($record->pending_value ?? 0, 2, '.', ',')),
+                    ]),        
                 ]),
 
             Infolists\Components\Group::make()

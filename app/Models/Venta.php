@@ -11,7 +11,11 @@ class Venta extends Model
         'orden_id',
         'vendedor_id',
         'total_precio',
-        'profit_vendedor'
+        'profit_vendedor',
+        'paid_amount',
+        'change_value',
+        'pending_value',
+        'status',
     ];
     public function orden()
     {

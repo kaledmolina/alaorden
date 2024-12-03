@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('referencia')->unique()->nullable(); 
             $table->decimal('precio_compra', 10, 2)->nullable();
             $table->decimal('precio_venta', 10, 2)->nullable();
+            $table->decimal('comision', 10, 2)->nullable();            
             $table->text('descripcion');
             $table->boolean('is_visible')->default(true);
             $table->boolean('is_activo')->default(true);            

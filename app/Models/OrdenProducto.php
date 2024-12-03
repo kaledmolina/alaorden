@@ -16,6 +16,7 @@ class OrdenProducto extends Model
         'referencia',
         'description',
         'precio_venta',
+        'comision',
         'cantidad_asignada',
     ];
 

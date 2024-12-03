@@ -15,6 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('orden_id')->constrained('ordens');
             $table->foreignId('vendedor_id')->constrained('vendedors');
+            $table->decimal('paid_amount', 10, 2)->nullable();
+            $table->decimal('change_value', 10, 2)->nullable();
+            $table->decimal('pending_value', 10, 2)->nullable();
             $table->enum('status', ['pendiente', 'reparto', 'cancelada', 'completada'])->default('reparto');
             $table->decimal('total_precio', 10, 2)->nullable();
             $table->decimal('profit_vendedor', 10, 2)->nullable();

@@ -3,12 +3,12 @@
 namespace App\Filament\Resources\VentaResource\Pages;
 
 use App\Filament\Resources\VentaResource;
-use App\Models\Venta;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
 
 class ListVentas extends ListRecords
 {
@@ -25,7 +25,6 @@ class ListVentas extends ListRecords
     {
         return $table
             ->columns([
-
                 TextColumn::make('vendedor.nombre')
                     ->label('Vendedor')
                     ->searchable(),
@@ -44,6 +43,12 @@ class ListVentas extends ListRecords
                     ->money('COP')
                     ->sortable(),
 
+                TextColumn::make('pending_value')
+                    ->label('Valor Pendiente')
+                    ->money('COP')
+                    ->sortable()
+                    ->color(fn($record) => $record->pending_value > 0 ? 'danger' : 'success'),
+
                 TextColumn::make('created_at')
                     ->label('Fecha de Venta')
                     ->dateTime('d/m/Y H:i')
@@ -57,9 +62,13 @@ class ListVentas extends ListRecords
                 SelectFilter::make('orden')
                     ->relationship('orden', 'numero_orden')
                     ->label('Filtrar por Orden'),
+
+                Filter::make('ordenes_pendientes')
+                    ->label('Órdenes Pendientes')
+                    ->query(fn($query) => $query->where('pending_value', '>', 0))
+                    ->indicator('Pendientes'), // Muestra un indicador cuando el filtro está activo
             ])
             ->actions([
-                // Acciones predeterminadas de Filament
                 \Filament\Tables\Actions\EditAction::make(),
                 \Filament\Tables\Actions\ViewAction::make(),
                 \Filament\Tables\Actions\DeleteAction::make(),

@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('referencia')->nullable();
             $table->text('description')->nullable();
             $table->decimal('precio_venta', 10, 2)->nullable();
+            $table->decimal('comision', 10, 2)->nullable(); 
             $table->integer('cantidad_asignada');
             $table->timestamps();
         });

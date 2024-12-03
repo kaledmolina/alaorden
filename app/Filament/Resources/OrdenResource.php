@@ -109,7 +109,7 @@ class OrdenResource extends Resource
                                 'description' => $producto->description,
                                 'precio_venta' => $producto->precio_venta,
                                 'cantidad_asignada' => 1, // Establecer cantidad inicial
-                                'comision' => 0, // Comisión predeterminada
+                                'comision' => $producto->comision,
                             ];
 
                             $livewire->data['productos'] = $productos;
@@ -141,6 +141,7 @@ class OrdenResource extends Resource
                                             $set('cantidad_asignada', 0);
                                             $set('code', $producto->code);
                                             $set('bar_code', $producto->bar_code);
+                                            $set('comision', $producto->comision);
                                             $set('description', $producto->description);
                                         }
                                     }),
@@ -148,10 +149,9 @@ class OrdenResource extends Resource
                                 Forms\Components\TextInput::make('referencia')
                                     ->label('Referencia')
                                     ->disabled()
-                                    ->numeric()
                                     ->columnSpan(1),
                 
-                                Forms\Components\TextInput::make('cantidad_asignada')
+                                    Forms\Components\TextInput::make('cantidad_asignada')
                                     ->label('Cantidad')
                                     ->numeric()
                                     ->required()
@@ -160,24 +160,30 @@ class OrdenResource extends Resource
                                         $productoId = $get('producto_id');
                                         $stockProducto = StockProducto::where('producto_id', $productoId)->first();
                                         
+                                        // Convertir el estado a un número, por defecto 0 si no es un número válido
+                                        $cantidad = is_numeric($state) ? (float)$state : 0;
+                                        
                                         // Validar stock
-                                        if ($stockProducto && $state > $stockProducto->cantidad_actual) {
+                                        if ($stockProducto && $cantidad > $stockProducto->cantidad_actual) {
                                             Notification::make()
                                                 ->title('Advertencia')
                                                 ->body("La cantidad ingresada excede el stock disponible para este producto.")
                                                 ->warning()
                                                 ->send();
                                             $set('cantidad_asignada', $stockProducto->cantidad_actual);
-                                        } else {
-                                            // Calcular el total si la cantidad es válida
-                                            $productos = $get('../../productos');
-                                            $total = collect($productos)->sum(function ($producto) {
-                                                return ($producto['precio_venta'] ?? 0) * ($producto['cantidad_asignada'] ?? 0);
-                                            });
-                                            $set('../../total_precio', $total);
+                                            $cantidad = $stockProducto->cantidad_actual;
                                         }
+                                        
+                                        // Calcular el total
+                                        $productos = $get('../../productos');
+                                        $total = collect($productos)->sum(function ($producto) {
+                                            $precio = is_numeric($producto['precio_venta'] ?? 0) ? (float)$producto['precio_venta'] : 0;
+                                            $cantidad = is_numeric($producto['cantidad_asignada'] ?? 0) ? (float)$producto['cantidad_asignada'] : 0;
+                                            return $precio * $cantidad;
+                                        });
+                                        $set('../../total_precio', $total);
                                     }),
-                
+                                
                                 Forms\Components\TextInput::make('precio_venta')
                                     ->label('Precio')
                                     ->numeric()
@@ -187,13 +193,16 @@ class OrdenResource extends Resource
                                     ->afterStateUpdated(function (callable $set, callable $get) {
                                         $productos = $get('../../productos');
                                         $total = collect($productos)->sum(function ($producto) {
-                                            return ($producto['precio_venta'] ?? 0) * ($producto['cantidad_asignada'] ?? 0);
+                                            $precio = is_numeric($producto['precio_venta'] ?? 0) ? (float)$producto['precio_venta'] : 0;
+                                            $cantidad = is_numeric($producto['cantidad_asignada'] ?? 0) ? (float)$producto['cantidad_asignada'] : 0;
+                                            return $precio * $cantidad;
                                         });
                                         $set('../../total_precio', $total);
                                     }),
                             ]),
                 
                         Forms\Components\Hidden::make('producto_id'),
+                        Forms\Components\Hidden::make('comision'),
                         Forms\Components\Hidden::make('nombre'),
                         Forms\Components\Hidden::make('code'),
                         Forms\Components\Hidden::make('bar_code'),
