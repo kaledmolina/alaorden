@@ -16,6 +16,7 @@ class Venta extends Model
         'change_value',
         'pending_value',
         'status',
+        'descripcion',
     ];
     public function orden()
     {

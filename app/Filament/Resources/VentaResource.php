@@ -19,6 +19,8 @@ use App\Models\StockProducto;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\MarkdownEditor;
+
 
 class VentaResource extends Resource
 {  
@@ -385,6 +387,11 @@ class VentaResource extends Resource
                 ->defaultItems(0)
                 ->addable(false)
                 ->columnSpan(2),
+            MarkdownEditor::make('descripcion')
+                ->label('Descripción')
+                ->placeholder('Ingrese nombre y precio detallado...')
+                ->helperText('Ingrese nombre completo en caso de creditos y el valor ')
+                ->columnSpanFull(),    
 
             Forms\Components\TextInput::make('total_precio')
                 ->label('Total Precio')

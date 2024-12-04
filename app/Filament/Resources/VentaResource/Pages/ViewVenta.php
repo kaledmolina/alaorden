@@ -114,7 +114,15 @@ class ViewVenta extends ViewRecord
                             TextEntry::make('pending_value')
                                 ->label('Valor Pendiente')
                                 ->formatStateUsing(fn ($record) => number_format($record->pending_value ?? 0, 2, '.', ',')),
-                    ]),        
+                    ]),
+                    Section::make('Anotacion de la vnta')
+                        ->columns(3)
+                        ->schema([
+                            TextEntry::make('descripcion')
+                                ->label('Descripción')
+                                ->icon('heroicon-s-document-text'),                           
+                            
+                    ]),           
                 ]),
 
             Infolists\Components\Group::make()
