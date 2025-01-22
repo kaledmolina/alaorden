@@ -48,7 +48,7 @@
                         <x-filament::input.select wire:model="type">
                             <option value="">Seleccionar Tipo</option>
                             <option value="ingreso">Ingreso</option>
-                            <option value="egreso">Egreso</option>
+                            <option value="egreso">Gasto</option>
                         </x-filament::input.select>
                     </x-filament::input.wrapper>
                     @error('type')
@@ -112,12 +112,12 @@
                     </div>
 
                     <div>
-                        <label for="type" class="block text-sm font-medium text-white-700 dark:text-gray-300">Ingreso o Egreso?</label>
+                        <label for="type" class="block text-sm font-medium text-white-700 dark:text-gray-300">Ingreso o Gasto?</label>
                         <x-filament::input.wrapper>
                             <x-filament::input.select wire:model="type">
                                 <option value="">Seleccionar Tipo</option>
                                 <option value="ingreso">Ingreso</option>
-                                <option value="egreso">Egreso</option>
+                                <option value="egreso">Gasto</option>
                             </x-filament::input.select>
                         </x-filament::input.wrapper>
                         @error('type')
@@ -165,7 +165,7 @@
                     dark:bg-gray-700 dark:text-white">
                     <option value="">Todos los Tipos</option>
                     <option value="ingreso">Ingresos</option>
-                    <option value="egreso">Egresos</option>
+                    <option value="egreso">Gastos</option>
                 </select>
             </div>
         </div>
@@ -180,7 +180,7 @@
                     <p class="text-xl font-bold text-green-700 dark:text-green-400">${{ number_format($totalIngresos, 2) }}</p>
                 </div>
                 <div class="bg-red-100 dark:bg-red-900 p-4 rounded-lg">
-                    <h3 class="text-sm font-medium text-red-800 dark:text-red-300">Egresos</h3>
+                    <h3 class="text-sm font-medium text-red-800 dark:text-red-300">Gastos</h3>
                     <p class="text-xl font-bold text-red-700 dark:text-red-400">${{ number_format($totalEgresos, 2) }}</p>
                 </div>
                 <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded-lg">

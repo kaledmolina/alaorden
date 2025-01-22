@@ -212,8 +212,7 @@ class OrdenResource extends Resource
                         Forms\Components\Hidden::make('referencia'),
                         Forms\Components\Hidden::make('description'),
                         
-                    ])
-                    
+                    ])                    
                     ->defaultItems(0)
                     ->addable(false)
                     ->columnSpan(2),
