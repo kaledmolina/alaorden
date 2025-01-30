@@ -1,5 +1,5 @@
-<div  class="p-6 bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
-    <h1 class="text-2xl font-bold mb-4 dark:text-white">Gestión de Finanzas Herrero</h1>
+<div class="p-6 bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <h1 class="text-2xl font-bold mb-4 dark:text-white">Gestión de Finanzas Personales</h1>
 
     {{-- Flash Messages --}}
     @if (session()->has('success'))
@@ -48,7 +48,7 @@
                         <x-filament::input.select wire:model="type">
                             <option value="">Seleccionar Tipo</option>
                             <option value="ingreso">Ingreso</option>
-                            <option value="egreso">Gasto</option>
+                            <option value="gastos">Gasto</option>
                         </x-filament::input.select>
                     </x-filament::input.wrapper>
                     @error('type')
@@ -117,7 +117,7 @@
                             <x-filament::input.select wire:model="type">
                                 <option value="">Seleccionar Tipo</option>
                                 <option value="ingreso">Ingreso</option>
-                                <option value="egreso">Gasto</option>
+                                <option value="gastos">Gasto</option>
                             </x-filament::input.select>
                         </x-filament::input.wrapper>
                         @error('type')
@@ -165,7 +165,7 @@
                     dark:bg-gray-700 dark:text-white">
                     <option value="">Todos los Tipos</option>
                     <option value="ingreso">Ingresos</option>
-                    <option value="egreso">Gastos</option>
+                    <option value="gastos">Gastos</option>
                 </select>
             </div>
         </div>
@@ -270,7 +270,7 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div><br>
+            </div> <br>
 
             {{-- Paginación --}}
             <div class="mt-4">
