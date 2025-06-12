@@ -29,7 +29,7 @@ class OrdenResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-m-clipboard-document-list';
 
     // Nombre en plural para el modelo
-    protected static ?string $pluralModelLabel = 'Órdenes';
+    protected static ?string $pluralModelLabel = 'Cotizar';
 
     /**
      * Definición del formulario para crear y editar órdenes
@@ -42,13 +42,6 @@ class OrdenResource extends Resource
                 Forms\Components\TextInput::make('numero_orden')
                 ->label('Número de Orden')
                 ->required()
-                ->readonly()
-                ->default(function () {
-                    do {
-                        $numero_orden = \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(10));
-                    } while (Orden::where('numero_orden', $numero_orden)->exists());
-                    return $numero_orden;
-                })
                 ->unique(table: 'ordens', column: 'numero_orden', ignoreRecord: true), 
 
                 // Select para elegir el vendedor
@@ -70,12 +63,12 @@ class OrdenResource extends Resource
                     ->columnSpan(2)
                     ->afterStateUpdated(function ($state, Forms\Components\Select $component) {
                         if (!$state) return;
-
+                    
                         $producto = Producto::find($state);
                         if ($producto) {
                             $livewire = $component->getLivewire();
                             $productos = $livewire->data['productos'] ?? [];
-
+                    
                             // Evita duplicados
                             if (collect($productos)->pluck('producto_id')->contains($producto->id)) {
                                 Notification::make()
@@ -86,7 +79,7 @@ class OrdenResource extends Resource
                                 $component->state(null);
                                 return;
                             }
-
+                    
                             // Verifica el stock
                             $stockDisponible = StockProducto::where('producto_id', $producto->id)->value('cantidad_actual') ?? 0;
                             if ($stockDisponible <= 0) {
@@ -98,7 +91,7 @@ class OrdenResource extends Resource
                                 $component->state(null);
                                 return;
                             }
-
+                    
                             // Agrega el producto
                             $productos[] = [
                                 'producto_id' => $producto->id,
@@ -111,8 +104,18 @@ class OrdenResource extends Resource
                                 'cantidad_asignada' => 1, // Establecer cantidad inicial
                                 'comision' => $producto->comision,
                             ];
-
+                    
+                            // Calcula el total
+                            $total = collect($productos)->sum(function ($producto) {
+                                $precio = is_numeric($producto['precio_venta'] ?? 0) ? (float)$producto['precio_venta'] : 0;
+                                $cantidad = is_numeric($producto['cantidad_asignada'] ?? 0) ? (float)$producto['cantidad_asignada'] : 0;
+                                return $precio * $cantidad;
+                            });
+                    
+                            // Actualiza los datos y el total
                             $livewire->data['productos'] = $productos;
+                            $livewire->data['total_precio'] = $total;
+                    
                             $component->state(null); // Resetea el select
                         }
                     }),
@@ -208,10 +211,20 @@ class OrdenResource extends Resource
                         Forms\Components\Hidden::make('bar_code'),
                         Forms\Components\Hidden::make('referencia'),
                         Forms\Components\Hidden::make('description'),
-                    ])
+                        
+                    ])                    
                     ->defaultItems(0)
                     ->addable(false)
                     ->columnSpan(2),
+                    Forms\Components\TextInput::make('total_precio')
+                    ->label('Total de la Orden')
+                    ->default(fn ($livewire) => $livewire->data['total_precio'] ?? 0)
+                    ->numeric()
+                    ->disabled()
+                    ->prefix('$')
+                    ->columnSpan(2),
+                    Forms\Components\Hidden::make('total_precio'),
+                    
             ]);
     }
 
@@ -276,6 +289,19 @@ class OrdenResource extends Resource
             ])
             ->toArray();
     }
+    private function calculateOrderTotal(callable $set, callable $get)
+{
+    $productos = $get('../../productos');
+    $total = 0;
+    
+    foreach ($productos as $producto) {
+        $precio = is_numeric($producto['precio_venta'] ?? 0) ? (float)$producto['precio_venta'] : 0;
+        $cantidad = is_numeric($producto['cantidad_asignada'] ?? 0) ? (float)$producto['cantidad_asignada'] : 0;
+        $total += $precio * $cantidad;
+    }
+    
+    $set('../../total_precio', round($total, 2));
+}
 
     public static function getRelations(): array
     {
