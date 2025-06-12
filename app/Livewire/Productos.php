@@ -3,8 +3,8 @@
 namespace App\Livewire;
 
 use Livewire\Component;
-use App\Models\Producto; // 1. Importar el modelo Producto
-use Livewire\WithPagination; // 2. Importar el Trait de paginación
+use App\Models\Producto; 
+use Livewire\WithPagination; 
 
 class Productos extends Component
 {
